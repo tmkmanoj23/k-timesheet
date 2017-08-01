@@ -1,0 +1,26 @@
+
+{
+  "name": "k-timesheet",
+  "version": "1.0.0",
+  "description": "this is demo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tmkmanoj23/k-timesheet.git"
+  },
+  "keywords": [
+    "k-timesheet"
+  ],
+  "author": "manoj",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tmkmanoj23/k-timesheet/issues"
+  },
+  "homepage": "https://github.com/tmkmanoj23/k-timesheet#readme",
+  "dependencies": {
+    "lodash": "^4.17.4"
+  }
+}
