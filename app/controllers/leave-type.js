@@ -5,6 +5,7 @@ const Q = require('q')
 , moment = require('moment')
 , CWCommons = require('cw-commons')
 , CWModel = require('cw-models')
+, userModel = CWModel["user"]
 , CWError = CWCommons.CWError
 , utils = CWCommons.utils
 , leaveTypeModel = require('../models/leave-type')
@@ -12,18 +13,7 @@ const Q = require('q')
 module.exports.getLeaveType = function(req,res) {
 	let options = utils.fetchOptionsFromHeaders(req)
 	let logger = options.logger
-	let type
-	if(_.isNil(req.query.type)) {
-		logger.error('please send type in query params')
-		return utils.sendResponse(res,null,404,'failure','please send type in query params')
-	}
-	else {
-		type = req.query.type
-	}
-	let selectionCriteria ={
-		type: type
-	}
-	leaveTypeModel.findMany(selectionCriteria,{},options)
+	leaveTypeModel.findMany({},{},options)
 		.then(function(results){
 			utils.sendResponse(res,results)
 
@@ -37,53 +27,49 @@ module.exports.getLeaveType = function(req,res) {
 module.exports.getQuota = function(req, res) {
 	let options = utils.fetchOptionsFromHeaders(req)
 	let logger = options.logger
-	let empGrade
-	let empLocation
-	if(_.isNil(req.query.empGrade)) {
-		logger.error('please send emp grade in query params')
-		return utils.sendResponse(res,null,404,'failure','please send emp grade in query params')
-	}
-	else {
-		empGrade = req.query.empGrade
-	}
-	if(_.isNil(req.query.location)) {
-		logger.error('please send emp grade in query params')
-		return utils.sendResponse(res,null,404,'failure','please send emp grade in query params')
-	}
-	else {
-		empLocation = req.query.location
-	}
-
+	let userId = req.headers.userId
 	let selectionCriteria = {
-		assignedTo : {
-			$elemMatch: {
-				empGrade : empGrade,
-				location : empLocation
+		_id: userId
+	}
+	userModel.findOne(selectionCriteria,{},options)
+		.then(function(user){
+		let selectionCriteria = {
+			applicableTo : {
+				$elemMatch: {
+					empGrade : user.employeeGrade,
+					location : user.location
+				}
 			}
 		}
-	}
 
-let assignedToArray = []
-	leaveTypeModel.findMany(selectionCriteria,{},options)
-		.then(function(records) {
-			records = records.map(function(r){
-				r.assignedTo.forEach(function(a){
-					if(a.empGrade == empGrade) {
-						assignedToArray.push(a)
+
+		leaveTypeModel.findMany(selectionCriteria,{},options)
+			.then(function(records) {
+				records = records.map(function(r){
+					let applicableToArray = []
+					r.applicableTo.forEach(function(a){
+						if(a.empGrade == user.employeeGrade && a.empType == user.employeeType) {
+							applicableToArray.push(a)
+						}
+					})
+					return {
+						type: r.type,
+						subtype: r.subtype,
+						quota: applicableToArray
 					}
 				})
-				return {
-					type: r.type,
-					subtype: r.subtype,
-					quota: assignedToArray
-				}
-			})
-			utils.sendResponse(res,records)
+				utils.sendResponse(res,records)
 
-		}, function(err){
-			logger.error(err)
-			return utils.sendResponse(res,null,500,'failure',err)
-		})
+			}, function(err){
+				logger.error(err)
+				return utils.sendResponse(res,null,500,'failure',err)
+			})
+		},function(err){
+		logger.error(err)
+		utils.sendResponse(res,null,500,'failure',err)
+	})
+
+
 
 }
 module.exports.create = function(req, res) {
@@ -93,7 +79,7 @@ module.exports.create = function(req, res) {
 		type: req.body.type,
 		allowOverlap: req.body.allowOverlap,
 		subtype: req.body.subtype,
-		assignedTo : req.body.assignedTo
+		applicableTo : req.body.applicableTo
 
 	}
 	leaveTypeModel.create(data,options)
@@ -111,23 +97,23 @@ module.exports.create = function(req, res) {
 module.exports.updateType = function(req, res) {
 	let options = utils.fetchOptionsFromHeaders(req)
 	let logger = options.logger
-	let type
-	if(_.isNil(req.query.type)) {
-		logger.error('please send type in query params')
-		return utils.sendResponse(res,null,404,'failure','please send type in query params')
+	let id
+	if(_.isNil(req.params.id)) {
+		logger.error('please send id params')
+		return utils.sendResponse(res,null,404,'failure','please send id params')
 	}
 	else {
-		type = req.query.type
+		id = req.params.id.toObjectId()
 	}
 	let selectionCriteria = {
-		type : type
+		_id : id
 	}
 	let dataToUpdate = {
 		$set : {
 			type: req.body.type,
 			allowOverlap: req.body.allowOverlap,
 			subtype: req.body.subtype,
-			assignedTo : req.body.assignedTo
+			applicableTo : req.body.applicableTo
 		}
 	}
 	leaveTypeModel.update(selectionCriteria,dataToUpdate,{},options)
