@@ -48,7 +48,7 @@ module.exports.getQuota = function(req, res) {
 				records = records.map(function(r){
 					let applicableToArray = []
 					r.applicableTo.forEach(function(a){
-						if(a.empGrade == user.employeeGrade && a.empType == user.employeeType) {
+						if(a.empGrade == user.employeeGrade && a.empType == user.employeeType && a.location == user.location) {
 							applicableToArray.push(a)
 						}
 					})
